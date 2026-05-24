@@ -1,0 +1,19 @@
+*__pycache__/
+*.pyc
+*.pyo
+
+# Ignore results files
+results_*.json
+
+# Ignore logs
+logs/
+
+# Ignore checkpoints
+checkpoints/
+
+# Output and error files
+*.out
+*.err
+
+# VS Code settings
+.vscode/
