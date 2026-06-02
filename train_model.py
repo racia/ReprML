@@ -144,7 +144,7 @@ def evaluate_squad(model, val_loader, device):
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
             preds = outputs.start_logits.argmax(dim=1), outputs.end_logits.argmax(dim=1)
-            print("Preds:", preds)
+            # print("Preds:", preds)
             start, end = batch["start_positions"], batch["end_positions"]
             # pred_text = extract_text(batch, start.cpu().numpy(), end.cpu().numpy()) TODO: Fix by not omitting context
             # pred_texts.extend(pred_text)
@@ -170,12 +170,14 @@ def train(task, model, train_loader, val_loader, device):
         num_warmup_steps=0 if "distilbert" in model.__class__.__name__.lower() else int(0.1 * num_training_steps),
         num_training_steps=num_training_steps
     )
-
+    val_acc, preds, labels, logits, start_positions, end_positions = None, None, None, None, None, None
     for epoch in range(num_epochs):
         train_acc = train_epoch(task, model, train_loader, device, optimizer, scheduler)
         if task == "sst2":
             val_acc, preds, labels, logits = evaluate_glue(model, val_loader, device)
         elif task == "plain_text":
-            print(f"Keys in val_loader batch: {next(iter(val_loader)).keys()}")  # Debugging line to check batch keys")
+            # print(f"Keys in val_loader batch: {next(iter(val_loader)).keys()}")  # Debugging line to check batch keys")
             val_acc, preds, start_positions, end_positions = evaluate_squad(model, val_loader, device)
         print(f"Epoch {epoch+1}:", f"train_acc={train_acc:.4f}" if train_acc is not None else "train_acc=0.0000", f"val_acc={val_acc:.4f}")
+    # Return final evaluation results after training
+    return val_acc, preds, labels, logits, start_positions, end_positions

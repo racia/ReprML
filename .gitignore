@@ -15,5 +15,8 @@ checkpoints/
 *.out
 *.err
 
+# Log files
+*.log
+
 # VS Code settings
 .vscode/

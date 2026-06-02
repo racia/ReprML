@@ -21,18 +21,13 @@ def set_seed(seed):
 
 def run_experiment(seed, model, train_loader, val_loader):
     set_seed(seed)
-    print(f"Keys in val_loader batch: {next(iter(val_loader)).keys()}")  # Debugging line to check batch keys")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
-    train(task=args.task_name, model=model, train_loader=train_loader, val_loader=val_loader, device=device)  # your training loop
+    val_acc, preds, labels, logits, start_positions, end_positions = train(task=args.task_name, model=model, train_loader=train_loader, val_loader=val_loader, device=device)  # your training loop
     # Save model checkpoint after training
     # torch.save(model.state_dict(), f"model_checkpoint_seed_{seed}.pt")
-    acc, preds, labels, logits, start_positions, end_positions = None, None, None, None, None, None
-    if args.task_name == "glue":
-        acc, preds, labels, logits = evaluate_glue(model, val_loader=val_loader, device=device)  # your evaluation loop
-    elif args.task_name == "squad":
-        acc, preds, start_positions, end_positions = evaluate_squad(model, val_loader=val_loader, device=device)
-    return acc, preds, labels, logits, start_positions, end_positions
+    print(f"Start positions: {start_positions}, End positions: {end_positions}")
+    return val_acc, preds, labels, logits, start_positions, end_positions
 
 
 if __name__ == "__main__":
@@ -96,24 +91,26 @@ if __name__ == "__main__":
 
     churn_matrix = np.zeros((num_results, num_results))
 
-    if all(~np.isnan(np.array(list(results[i].values() for i in range(num_results)), dtype=float))):
+    # if all(~np.isnan(np.array(list(results[i].values())) for i in range(num_results))):
+    if args.dataset_name == "glue":
         for i in range(num_results):
             for j in range(num_results):
+                print(f"Comparing run {i} and run {j} for normal churn...")
                 churn_matrix[i, j] = compute_churn( # Pairwise churn between all runs
                     results[i]["preds"],
                     results[j]["preds"]
                 )
-
         mean_churn = churn_matrix[np.triu_indices(num_results, k=1)].mean() # Mean over all independent runs
         print("Mean churn:", mean_churn)
 
-
-    elif (all(results[i]["preds"] is not None for i in range(num_results))):
+    # if all(results[i]["preds"] is not None for i in range(num_results)):
+    elif args.dataset_name == "squad":
         for i in range(num_results):
             for j in range(num_results):
+                print(f"Comparing run {i} and run {j} for span churn...")
                 churn_matrix[i, j] = squad_churn_spans( # Pairwise churn between all runs
-                    results[i]["start_positions"],
-                    results[j]["end_positions"]
+                    results[i],
+                    results[j]
                 )
         mean_churn = churn_matrix[np.triu_indices(num_results, k=1)].mean() # Mean over all independent runs
         print("Mean text churn:", mean_churn)
@@ -127,7 +124,7 @@ if __name__ == "__main__":
 
     l2_matrix = np.zeros((num_results, num_results))
 
-    if all(~np.isnan(np.array(list(results.values()), dtype=float))):
+    if all(results[i]["logits"] for i in range(num_results)):
         for i in range(num_results):
             for j in range(num_results):
                 l2_matrix[i, j] = compute_l2(
@@ -151,14 +148,14 @@ if __name__ == "__main__":
         return tp, tn, fp, fn
 
     for r in results:
-        if all(~np.isnan(np.array((r["preds"],r["labels"]), dtype=float))):
+        if all((r["preds"], r["labels"])):
             tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
             r["tp_idx"] = tp
             r["tn_idx"] = tn
             r["fp_idx"] = fp
             r["fn_idx"] = fn
 
-    if all(~np.isnan(np.array(list(results.values()), dtype=float))):
+    if all(results[i]["fp_idx"] for i in range(num_results)):
         fp_counts = [len(r["fp_idx"]) for r in results]
         fp_std = np.std(fp_counts)
         print("FP stddev:", fp_std)
@@ -184,7 +181,7 @@ if __name__ == "__main__":
                 churns.append(churn)
         return np.mean(churns)
 
-    if all(~np.isnan(np.array(list(results.values()), dtype=float))):
+    if all((results[i]["fp_idx"], results[i]["fn_idx"]) for i in range(num_results)):
         print("FP churn:", subgroup_churn(results, "fp_idx"))
         print("FN churn:", subgroup_churn(results, "fn_idx"))
 

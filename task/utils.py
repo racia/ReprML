@@ -6,13 +6,13 @@ def extract_text(batch, start: np.ndarray, end: np.ndarray):
         for i in range(len(start))
     ]
 
-
 def squad_churn_text(runA, runB):
     textA = runA["pred_text"]
     textB = runB["pred_text"]
     return np.mean([a != b for a, b in zip(textA, textB)])
 
 def squad_churn_spans(runA, runB):
+    assert runA["start_positions"].shape == runB["start_positions"].shape
     startA = runA["start_positions"]
     endA = runA["end_positions"]
     startB = runB["start_positions"]
