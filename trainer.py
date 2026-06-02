@@ -70,7 +70,7 @@ if __name__ == "__main__":
             "end_positions": end_positions
         })
     
-    print(f"Mean false error rate per seed: {[np.mean(r["preds"]!=r["labels"]) for r in results]} (in case of existing preds, labels)")
+    print(f"Mean false error rate per seed: {[np.mean(r['preds']!=r['labels']) for r in results]} (in case of existing preds, labels)")
     # print([r["labels"] for r in results])
 
     num_results = len(results)
