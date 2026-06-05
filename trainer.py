@@ -1,9 +1,7 @@
 import argparse
 from pathlib import Path
-from xml.parsers.expat import model
 
 from omegaconf import OmegaConf
-# from pyexpat import model
 from task.utils import squad_churn_spans, squad_churn_text
 from train_model import build_model, build_dataloaders, train, evaluate_glue, evaluate_squad
 # from test_model import evaluate
@@ -160,7 +158,6 @@ if __name__ == "__main__":
         return np.mean(np.linalg.norm(diffs, axis=1))
 
     l2_matrix = np.zeros((num_results, num_results))
-    print([results[i]["logits"] != None for i in range(num_results)])
     if all(results[i]["logits"] != None for i in range(num_results)):
         try:
             for i in range(num_results):
@@ -200,7 +197,7 @@ if __name__ == "__main__":
                 r["fn_idx"] = fn.tolist()
             except Exception as e:
                 print(str(e))
-    if np.all(results[i]["fp_idx"]!=None for i in range(num_results)):
+    if np.all([results[i]["fp_idx"]!=None for i in range(num_results)]):
         fp_counts = [len(r["fp_idx"]) for r in results if all(r[res] for res in ["preds", "labels"])]
         fp_std = np.std(fp_counts)
         print("FP stddev:", fp_std)
