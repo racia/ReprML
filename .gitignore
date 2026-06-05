@@ -14,6 +14,7 @@ checkpoints/
 # Output and error files
 *.out
 *.err
+outputs/
 
 # Log files
 *.log

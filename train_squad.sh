@@ -2,7 +2,7 @@
 #SBATCH --job-name=reprML
 #SBATCH --output=reprML.out
 #SBATCH --error=reprML.err
-#SBATCH --time=02:29:00
+#SBATCH --time=00:29:00
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -10,9 +10,7 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=sari@cl.uni-heidelberg.de
 
-# Activate the conda environment
-source ~/miniconda3/bin/activate
-conda activate repr
+source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
 
 # Monitor GPU usage in background
 (
@@ -24,5 +22,10 @@ conda activate repr
 ) > gpu_monitor.log &
 MONITOR_PID=$!#
 
-python trainer.py --dataset_name squad --task_name plain_text --model_name roberta-base --num_seeds 2
+# Define script and config variables
+declare -a CONFIGS=("$PWD/config/train-squad.yaml")
+SCRIPT="trainer.py"
+echo "Running $script with the following configurations: ${CONFIGS[*]}"
+
+python "$SCRIPT" --config "${CONFIGS[@]}"
 
