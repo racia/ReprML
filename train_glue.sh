@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=reprML
-#SBATCH --output=reprML.out
-#SBATCH --error=reprML.err
-#SBATCH --time=02:29:00
+#SBATCH --output=reprML-glue.out
+#SBATCH --error=reprML-glue.err
+#SBATCH --time=03:29:00
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -29,4 +29,4 @@ declare -a CONFIGS=("$PWD/config/train-glue.yaml")
 SCRIPT="trainer.py"
 echo "Running $script with the following configurations: ${CONFIGS[*]}"
 
-python "$SCRIPT" --config "${CONFIGS[@]}
+python "$SCRIPT" --config "${CONFIGS[@]}"

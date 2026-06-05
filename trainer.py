@@ -61,7 +61,7 @@ if __name__ == "__main__":
     num_samples = conf.train.samples if conf else args.num_samples
     # Set results dir
     results_path = Path(prj_path / "results" / conf.results.output_path if conf else dataset_name)
-    Path.mkdir(Path(results_path), exist_ok=True)
+    Path.mkdir(Path(results_path), parents=True, exist_ok=True)
 
     # Log the experiment configuration
     print("Experiment Configuration:")

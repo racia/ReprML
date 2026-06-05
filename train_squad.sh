@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=reprML
-#SBATCH --output=reprML.out
-#SBATCH --error=reprML.err
+#SBATCH --output=reprML-squad.out
+#SBATCH --error=reprML-squad.err
 #SBATCH --time=00:29:00
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
