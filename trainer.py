@@ -1,5 +1,8 @@
 import argparse
+from pathlib import Path
 from xml.parsers.expat import model
+
+from omegaconf import OmegaConf
 # from pyexpat import model
 from task.utils import squad_churn_spans, squad_churn_text
 from train_model import build_model, build_dataloaders, train, evaluate_glue, evaluate_squad
@@ -7,7 +10,6 @@ from train_model import build_model, build_dataloaders, train, evaluate_glue, ev
 import torch
 import random
 import numpy as np
-from train_squad import preprocess
 import tqdm
 import logging
 
@@ -19,63 +21,97 @@ def set_seed(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def run_experiment(seed, model, train_loader, val_loader):
+def run_experiment(seed, model, task, epochs, train_loader, val_loader):
     set_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
-    val_acc, preds, labels, logits, start_positions, end_positions = train(task=args.task_name, model=model, train_loader=train_loader, val_loader=val_loader, device=device)  # your training loop
+    val_loss, val_acc, preds, labels, logits, start_positions, end_positions = train(task=task, model=model, num_epochs=epochs, train_loader=train_loader, val_loader=val_loader, device=device)  # your training loop
     # Save model checkpoint after training
     # torch.save(model.state_dict(), f"model_checkpoint_seed_{seed}.pt")
-    print(f"Start positions: {start_positions}, End positions: {end_positions}")
-    return val_acc, preds, labels, logits, start_positions, end_positions
+    if start_positions and end_positions:
+        assert len(start_positions) == len(end_positions), f"Length mismatch between start and end positions"
+    return val_loss, val_acc, preds, labels, logits, start_positions, end_positions
 
 
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     # parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--model_name", type=str, default="roberta-base", help="Model name (e.g., 'roberta-base' or 'distilbert-base-uncased')")
+    parser.add_argument("--config", type=str, default="train-glue", help="Config file path for either squad oder glue training run")
+    parser.add_argument("--model_name", type=str, default="distilbert-base-uncased", help="Model name (e.g., 'roberta-base' or 'distilbert-base-uncased')")
     parser.add_argument("--dataset_name", type=str, default="glue", help="Dataset name (e.g., 'glue' or 'squad')")
     parser.add_argument("--task_name", type=str, default="sst2", help="Task name (e.g., 'sst2' for GLUE or 'plain_text' for SQuAD)")
     parser.add_argument("--num_seeds", type=int, default=10, help="Number of random seeds to run experiments with")
+    parser.add_argument("--num_epochs", type=int, default=3, help="Number of training epochs")
+    parser.add_argument("--num_samples", type=int, default=100, help="Number of samples to use for each experiment")
+    # parser.add_argument("--batch_size", type=int, default=16, help="Batch size for training and evaluation")
     args = parser.parse_args()
+
+    # Set project path
+    prj_path = Path.cwd()
+    
+    # Load config file from project path
+    conf_path = Path(prj_path, "config")
+    conf_name = args.config
+    conf = OmegaConf.load(Path(conf_path, conf_name))
+
+    model_name = conf.model.name if conf else args.dataset_name
+    dataset_name = conf.task.dataset_name if conf else args.dataset_name
+    task_name = conf.task.task_name if conf else args.task_name
+    num_seeds = conf.run.seeds if conf else args.num_seeds
+    num_epochs = conf.train.epochs if conf else args.num_epochs
+    num_samples = conf.train.samples if conf else args.num_samples
+    # Set results dir
+    results_path = Path(prj_path / "results" / conf.results.output_path if conf else dataset_name)
+    Path.mkdir(Path(results_path), exist_ok=True)
 
     # Log the experiment configuration
     print("Experiment Configuration:")
-    print(f"Model Name: {args.model_name}")
-    print(f"Dataset Name: {args.dataset_name}")
-    print(f"Task Name: {args.task_name}")
-    print(f"Number of Seeds: {args.num_seeds}")
-
+    print(f"Model Name: {model_name}")
+    print(f"Dataset Name: {dataset_name}")
+    print(f"Task Name: {task_name}")
+    print(f"Number of Seeds: {num_seeds}")
+    print(f"Number of Epochs: {num_epochs}")
+    print(f"Number of Samples: {num_samples}")
+    # print(f"Batch Size: {batch_size}")
+    # print(f"Num Epochs: {epochs}")
 
     print("Loading model and dataset...")
-    model, tokenizer = build_model(args.model_name)
+    model, tokenizer = build_model(model_name)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-    train_loader, val_loader = build_dataloaders(tokenizer, args.dataset_name, args.task_name if args.dataset_name == "glue" else None, preprocess_fn=preprocess if args.dataset_name == "squad" else None)
+
+    train_loader, val_loader = build_dataloaders(
+        tokenizer, 
+        "nyu-mll/glue" if "glue" in dataset_name else "rajpurkar/squad", 
+        task_name if dataset_name == "glue" else None, 
+        num_samples=num_samples if num_samples>0 else None
+        )
 
     results = []
-    for seed in tqdm.tqdm(range(args.num_seeds)):
+    for seed in tqdm.tqdm(range(num_seeds)):
         print(f"Running experiment with seed {seed}")
-        acc, preds, labels, logits, start_positions, end_positions = run_experiment(seed, model, train_loader, val_loader)
+        val_loss, val_acc, preds, labels, logits, start_positions, end_positions = run_experiment(seed, model, task_name, num_epochs, train_loader, val_loader)
+        
         results.append({
             "seed": seed,
-            "acc": acc,
-            "preds": preds,
-            "labels": labels,
-            "logits": logits,
-            "start_positions": start_positions,
-            "end_positions": end_positions
+            "val_acc": val_acc if val_acc else None,
+            "val_loss": val_loss if val_loss else None,
+            "preds": preds.tolist() if isinstance(preds, np.ndarray) else preds, # TODO: Case None 
+            "labels": labels.tolist() if isinstance(labels, np.ndarray) else labels,
+            "logits": logits.tolist() if isinstance(logits, np.ndarray) else logits,
+            "start_positions": [int(i) for i in start_positions] if start_positions else None,
+            "end_positions": [int(i) for i in end_positions] if end_positions else None
         })
-    
+    assert (not isinstance(vals, np.ndarray) for res in results for keys, vals in res.items())
     print(f"Mean false error rate per seed: {[np.mean(r['preds']!=r['labels']) for r in results]} (in case of existing preds, labels)")
     # print([r["labels"] for r in results])
 
     num_results = len(results)
 
-    accuracies = [r["acc"] for r in results]
+    accuracies = [r["val_acc"] for r in results]
     if all(accuracies):
         mean_acc = np.mean(accuracies)
         std_acc = np.std(accuracies)
@@ -92,7 +128,7 @@ if __name__ == "__main__":
     churn_matrix = np.zeros((num_results, num_results))
 
     # if all(~np.isnan(np.array(list(results[i].values())) for i in range(num_results))):
-    if args.dataset_name == "glue":
+    if dataset_name == "glue":
         for i in range(num_results):
             for j in range(num_results):
                 print(f"Comparing run {i} and run {j} for normal churn...")
@@ -104,7 +140,7 @@ if __name__ == "__main__":
         print("Mean churn:", mean_churn)
 
     # if all(results[i]["preds"] is not None for i in range(num_results)):
-    elif args.dataset_name == "squad":
+    elif dataset_name == "squad":
         for i in range(num_results):
             for j in range(num_results):
                 print(f"Comparing run {i} and run {j} for span churn...")
@@ -123,15 +159,17 @@ if __name__ == "__main__":
         return np.mean(np.linalg.norm(diffs, axis=1))
 
     l2_matrix = np.zeros((num_results, num_results))
-
-    if all(results[i]["logits"] for i in range(num_results)):
-        for i in range(num_results):
-            for j in range(num_results):
-                l2_matrix[i, j] = compute_l2(
-                    results[i]["logits"],
-                    results[j]["logits"]
-                )
-
+    print([results[i]["logits"] != None for i in range(num_results)])
+    if all(results[i]["logits"] != None for i in range(num_results)):
+        try:
+            for i in range(num_results):
+                for j in range(num_results):
+                    l2_matrix[i, j] = compute_l2(
+                        results[i]["logits"],
+                        results[j]["logits"]
+                    )
+        except TypeError:
+            print(f"L2-divergence couldn't be computed (likeliky due to missing logits) for run with seed {seed}, skipping..")
         mean_l2 = l2_matrix[np.triu_indices(num_results, k=1)].mean()
         print("Mean L2 divergence:", mean_l2)
 
@@ -148,23 +186,29 @@ if __name__ == "__main__":
         return tp, tn, fp, fn
 
     for r in results:
-        if all((r["preds"], r["labels"])):
-            tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
-            r["tp_idx"] = tp
-            r["tn_idx"] = tn
-            r["fp_idx"] = fp
-            r["fn_idx"] = fn
-
-    if all(results[i]["fp_idx"] for i in range(num_results)):
-        fp_counts = [len(r["fp_idx"]) for r in results]
+        if np.all(r[res]!=None for res in ["preds","labels"]):
+            print(f"Preds and labels found for run")#: {r}")
+        else:
+            print(f"No preds-labels found for run")#: {r}")
+        if np.all((r["preds"]!=None, r["labels"]!=None)):
+            try:
+                tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
+                r["tp_idx"] = tp.tolist()
+                r["tn_idx"] = tn.tolist()
+                r["fp_idx"] = fp.tolist()
+                r["fn_idx"] = fn.tolist()
+            except Exception as e:
+                print(str(e))
+    if np.all(results[i]["fp_idx"]!=None for i in range(num_results)):
+        fp_counts = [len(r["fp_idx"]) for r in results if all(r[res] for res in ["preds", "labels"])]
         fp_std = np.std(fp_counts)
         print("FP stddev:", fp_std)
 
-        num_samples = len(results[0]["labels"])
         fp_frequency = np.zeros(num_samples)
 
         for r in results:
-            fp_frequency[r["fp_idx"]] += 1
+            if np.all(r["preds"]) and np.all(r["labels"]):
+                fp_frequency[r["fp_idx"]] += 1
 
         # Samples that frequently flip into FP
         unstable_fp_samples = np.where(fp_frequency > 5)[0]
@@ -174,14 +218,17 @@ if __name__ == "__main__":
         churns = []
         for i in range(num_results):
             for j in range(i+1, num_results):
-                a = results[i][subgroup]
-                b = results[j][subgroup]
-                # Jaccard distance
-                churn = 1 - len(set(a) & set(b)) / len(set(a) | set(b)) if len(set(a) | set(b)) > 0 else 0
-                churns.append(churn)
+                try:
+                    a = results[i][subgroup]
+                    b = results[j][subgroup]
+                    # Jaccard distance
+                    churn = 1 - len(set(a) & set(b)) / len(set(a) | set(b)) if len(set(a) | set(b)) > 0 else 0
+                    churns.append(churn)
+                except KeyError:
+                    print(f"No {subgroup} entries found for run: ")#{r}, skipping..")
         return np.mean(churns)
 
-    if all((results[i]["fp_idx"], results[i]["fn_idx"]) for i in range(num_results)):
+    if np.all((results[i]["fp_idx"]!=None, results[i]["fn_idx"]!=None) for i in range(num_results)):
         print("FP churn:", subgroup_churn(results, "fp_idx"))
         print("FN churn:", subgroup_churn(results, "fn_idx"))
 
@@ -189,7 +236,8 @@ if __name__ == "__main__":
     import pandas as pd
     df = pd.DataFrame({
         "seed": [r["seed"] for r in results],
-        "acc": [r["acc"] for r in results],
+        "val_acc": [r["val_acc"] for r in results],
+        "val_loss": [r["val_loss"] for r in results],
         "fp_count": [len(r["fp_idx"]) if "fp_idx" in r else np.nan for r in results],
         "fn_count": [len(r["fn_idx"]) if "fn_idx" in r else np.nan for r in results],
         "fp_churn": [subgroup_churn(results, "fp_idx") if "fp_idx" in r else np.nan for r in results],
@@ -199,5 +247,9 @@ if __name__ == "__main__":
 
     # Store per seed results as JSON or CSV for further analysis
     import json
-    with open("experiment_results.json", "w") as f:
-        json.dump(results, f, indent=4)
+    with open(f"experiment_results-{dataset_name}.json", "w") as f:
+        json.dump(
+            {"conf": OmegaConf.to_container(conf, resolve=True),
+            "results": [res if not isinstance(vals, np.ndarray) else vals.tolist() for res in results for keys, vals in res.items()]
+            }, 
+            f, indent=4)

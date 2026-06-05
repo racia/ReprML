@@ -1,0 +1,20 @@
+
+model:
+  name: "distilbert-base-uncased"
+
+task:
+  path: None
+  dataset_name: "glue"
+  task_name: "sst2"
+
+results:
+  output_path: "glue"
+
+train:
+  epochs: 3
+  batch: None
+  samples: -1
+  
+run:
+  seeds: 10
+

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 from torch.optim import AdamW
 from transformers import (
     DistilBertTokenizerFast,
@@ -12,20 +12,22 @@ from transformers import (
 from datasets import load_dataset
 
 from task.utils import extract_text
-
+from task.utils import preprocess
 
 # -----------------------------
 # 1. Load Dataset (either GLUE (SST-2) or SQuAD)
 # -----------------------------
-def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=None):
+def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=None, num_samples: int = None):
         
     dataset = load_dataset(path=dataset_name, name=task_name)  
-
-    if preprocess_fn:
+    sampler = RandomSampler(dataset, replacement=True, num_samples=num_samples) if num_samples else None
+    
+    if "squad" in dataset_name:
+        preprocess_fn = preprocess
         dataset = dataset.map(preprocess_fn, batched=True, remove_columns=dataset["train"].column_names)
         dataset.set_format(type="torch")
 
-        train_loader = DataLoader(dataset["train"], batch_size=8, shuffle=True)
+        train_loader = DataLoader(dataset["train"], batch_size=8, shuffle=False, sampler=sampler)
         val_loader = DataLoader(dataset["validation"], batch_size=16)
     else:
         def tokenize(batch):
@@ -33,7 +35,7 @@ def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=Non
         dataset = dataset.map(tokenize, batched=True)
         dataset.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
-        train_loader = DataLoader(dataset["train"], batch_size=32, shuffle=True)
+        train_loader = DataLoader(dataset["train"], batch_size=32, shuffle=False, sampler=sampler)
         val_loader = DataLoader(dataset["validation"], batch_size=32)
     return train_loader, val_loader
 
@@ -151,18 +153,17 @@ def evaluate_squad(model, val_loader, device):
             start_positions.extend(start.cpu().numpy())
             end_positions.extend(end.cpu().numpy())
             total_loss += outputs.loss.item()
-    return total_loss / len(val_loader), pred_texts, start_positions, end_positions
+    return total_loss / len(val_loader), start_positions, end_positions
 
 
 # -----------------------------
 # 6. Run Training
 # -----------------------------
-def train(task, model, train_loader, val_loader, device):
+def train(task, model, num_epochs, train_loader, val_loader, device):
     # -----------------------------
     # 3. Optimizer + Scheduler
     # -----------------------------
     optimizer = AdamW(model.parameters(), lr=2e-5 if "distilbert" in model.__class__.__name__.lower() else 3e-5)
-    num_epochs = 3 if "distilbert" in model.__class__.__name__.lower() else 2
     num_training_steps = num_epochs * len(train_loader)
 
     scheduler = get_linear_schedule_with_warmup(
@@ -170,14 +171,14 @@ def train(task, model, train_loader, val_loader, device):
         num_warmup_steps=0 if "distilbert" in model.__class__.__name__.lower() else int(0.1 * num_training_steps),
         num_training_steps=num_training_steps
     )
-    val_acc, preds, labels, logits, start_positions, end_positions = None, None, None, None, None, None
+    val_acc, val_loss, preds, labels, logits, start_positions, end_positions = None, None, None, None, None, None, None
     for epoch in range(num_epochs):
         train_acc = train_epoch(task, model, train_loader, device, optimizer, scheduler)
         if task == "sst2":
             val_acc, preds, labels, logits = evaluate_glue(model, val_loader, device)
         elif task == "plain_text":
             # print(f"Keys in val_loader batch: {next(iter(val_loader)).keys()}")  # Debugging line to check batch keys")
-            val_acc, preds, start_positions, end_positions = evaluate_squad(model, val_loader, device)
-        print(f"Epoch {epoch+1}:", f"train_acc={train_acc:.4f}" if train_acc is not None else "train_acc=0.0000", f"val_acc={val_acc:.4f}")
+            val_loss, start_positions, end_positions = evaluate_squad(model, val_loader, device)
+        print(f"Epoch {epoch+1}:", f"train_acc={train_acc:.4f}" if train_acc is not None else "train_acc=0.0000", f"val_loss={val_loss:.4f}" if val_loss is not None else "val_loss=0.0000")
     # Return final evaluation results after training
-    return val_acc, preds, labels, logits, start_positions, end_positions
+    return val_loss, val_acc, preds, labels, logits, start_positions, end_positions
