@@ -1,5 +1,4 @@
 import argparse
-from xml.parsers.expat import model
 # from pyexpat import model
 from task.utils import squad_churn_spans, squad_churn_text
 from train_model import build_model, build_dataloaders, train, evaluate_glue, evaluate_squad
@@ -34,10 +33,10 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
     # parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--model_name", type=str, default="roberta-base", help="Model name (e.g., 'roberta-base' or 'distilbert-base-uncased')")
+    parser.add_argument("--model_name", type=str, default="distilbert-base-uncased", help="Model name (e.g., 'roberta-base' or 'distilbert-base-uncased')")
     parser.add_argument("--dataset_name", type=str, default="glue", help="Dataset name (e.g., 'glue' or 'squad')")
     parser.add_argument("--task_name", type=str, default="sst2", help="Task name (e.g., 'sst2' for GLUE or 'plain_text' for SQuAD)")
-    parser.add_argument("--num_seeds", type=int, default=10, help="Number of random seeds to run experiments with")
+    parser.add_argument("--num_seeds", type=int, default=2, help="Number of random seeds to run experiments with")
     args = parser.parse_args()
 
     # Log the experiment configuration
@@ -124,7 +123,7 @@ if __name__ == "__main__":
 
     l2_matrix = np.zeros((num_results, num_results))
 
-    if all(results[i]["logits"] for i in range(num_results)):
+    if all([results[i]["logits"] is not None for i in range(num_results)]):
         for i in range(num_results):
             for j in range(num_results):
                 l2_matrix[i, j] = compute_l2(
@@ -155,7 +154,7 @@ if __name__ == "__main__":
             r["fp_idx"] = fp
             r["fn_idx"] = fn
 
-    if all(results[i]["fp_idx"] for i in range(num_results)):
+    if all([results[i]["fp_idx"] is not None for i in range(num_results)]):
         fp_counts = [len(r["fp_idx"]) for r in results]
         fp_std = np.std(fp_counts)
         print("FP stddev:", fp_std)
@@ -181,7 +180,7 @@ if __name__ == "__main__":
                 churns.append(churn)
         return np.mean(churns)
 
-    if all((results[i]["fp_idx"], results[i]["fn_idx"]) for i in range(num_results)):
+    if all([results[i]["fp_idx"] is not None and results[i]["fn_idx"] is not None for i in range(num_results)]):
         print("FP churn:", subgroup_churn(results, "fp_idx"))
         print("FN churn:", subgroup_churn(results, "fn_idx"))
 

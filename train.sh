@@ -2,7 +2,7 @@
 #SBATCH --job-name=reprML
 #SBATCH --output=reprML.out
 #SBATCH --error=reprML.err
-#SBATCH --time=01:29:00
+#SBATCH --time=02:29:00
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -10,7 +10,9 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=sari@cl.uni-heidelberg.de
 
-source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
+# Activate the conda environment
+source ~/miniconda3/bin/activate
+conda activate repr
 
 # Monitor GPU usage in background
 (

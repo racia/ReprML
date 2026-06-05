@@ -11,7 +11,7 @@ from transformers import (
 # -----------------------------
 # 1. Load SQuAD
 # -----------------------------
-dataset = load_dataset("squad")
+dataset = load_dataset("rajpurkar/squad")
 tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base")
 
 # -----------------------------
