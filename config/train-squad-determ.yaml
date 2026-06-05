@@ -1,0 +1,33 @@
+model:
+  name: "roberta-base"
+
+task:
+  path: None
+  dataset_name: "squad"
+  task_name: "plain_text"
+
+results:
+  output_path: "squad"
+
+train:
+  epochs: 2
+  batch: None
+  samples: 500
+
+run:
+  seeds: 10
+  deterministic: True
+  
+noise:
+  algorithmic:
+    # noise: True
+    noise_types:
+      fixed_seeds: True # weights initialization, data augmentation, batch shuffling
+      batch_shuffling: True
+      single_batch: False # TODO:
+
+  implementation:
+    # noise: True
+    noise_types:
+      determ_alg: True
+      fixed_cudnn: True
