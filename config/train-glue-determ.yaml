@@ -1,0 +1,35 @@
+model:
+  name: "distilbert-base-uncased"
+
+task:
+  path: None
+  dataset_name: "glue"
+  task_name: "sst2"
+
+results:
+  output_path: "glue"
+
+train:
+  epochs: 3
+  batch: None
+  samples: -1
+  
+run:
+  seeds: 10
+  deterministic: True
+  
+noise:
+  algorithmic:
+    # noise: True
+    noise_types:
+      fixed_seeds: True # weights initialization, data augmentation, batch shuffling
+      batch_shuffling: True
+      single_batch: False # TODO:
+
+  implementation:
+    # noise: True
+    noise_types:
+      determ_alg: True
+      fixed_cudnn: True
+
+

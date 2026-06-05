@@ -14,6 +14,7 @@ import logging
 logging.basicConfig(filename="experiment.log", level=logging.INFO)
 
 def set_seed(seed):
+    '''Fixes all implementation level seeds'''
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)

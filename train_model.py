@@ -27,7 +27,7 @@ def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=Non
         dataset = dataset.map(preprocess_fn, batched=True, remove_columns=dataset["train"].column_names)
         dataset.set_format(type="torch")
 
-        train_loader = DataLoader(dataset["train"], batch_size=8, shuffle=False, sampler=sampler)
+        train_loader = DataLoader(dataset["train"], batch_size=8, shuffle=False, sampler=sampler) # TODO: Try 16 for a100 architecture
         val_loader = DataLoader(dataset["validation"], batch_size=16)
     else:
         def tokenize(batch):
