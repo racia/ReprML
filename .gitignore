@@ -4,6 +4,7 @@
 
 # Ignore results files
 results_*.json
+results/
 
 # Ignore logs
 logs/

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.optim import AdamW
 from transformers import (
     DistilBertTokenizerFast,
@@ -20,7 +20,11 @@ from task.utils import preprocess
 def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=None, num_samples: int = None):
         
     dataset = load_dataset(path=dataset_name, name=task_name)  
-    sampler = RandomSampler(dataset, replacement=True, num_samples=num_samples) if num_samples else None
+    if num_samples != None and num_samples > 0:
+        sampler = RandomSampler(dataset, replacement=True, num_samples=num_samples)
+    else:
+        sampler = RandomSampler(dataset, replacement=False, num_samples=dataset["train"].num_rows)
+    print(sampler, "with sampler size:", len(sampler))
     
     if "squad" in dataset_name:
         preprocess_fn = preprocess
@@ -37,6 +41,8 @@ def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=Non
 
         train_loader = DataLoader(dataset["train"], batch_size=32, shuffle=False, sampler=sampler)
         val_loader = DataLoader(dataset["validation"], batch_size=32)
+    print("train batches:", len(train_loader))
+    print("val batches:", len(val_loader))
     return train_loader, val_loader
 
 # -----------------------------

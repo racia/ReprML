@@ -17,4 +17,18 @@ train:
   
 run:
   seeds: 10
+  deterministic: False # Controlls all noise
+  
+noise:
+  algo:
+    control: False 
+    types: # Allows varying noise control
+      fixed_seeds: True # weights initialization, data augmentation, batch shuffling
+      batch_shuffling: True
+      single_batch: False # TODO:
 
+  impl:
+    control: False
+    types:
+      determ_alg: True
+      fixed_cudnn: True

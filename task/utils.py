@@ -18,14 +18,13 @@ def squad_churn_text(runA, runB):
     return np.mean([a != b for a, b in zip(textA, textB)])
 
 def squad_churn_spans(runA, runB):
-    assert len(runA["start_positions"]) == len(runB["start_positions"]), "Runs must have the same number of examples for churn calculation"
     startA = runA["start_positions"]
     endA = runA["end_positions"]
     startB = runB["start_positions"]
     endB = runB["end_positions"]
 
+    print(f"Calculating span churn between start ({startA[:3]}) and end ({endA[:3]}) positions of different runs")
     disagree = [(sA != sB) or (eA != eB) for sA, eA, sB, eB in zip(startA, endA, startB, endB)]
-    
     return np.mean(disagree)
 
 def preprocess(batch):

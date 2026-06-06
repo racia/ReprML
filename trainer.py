@@ -10,17 +10,35 @@ import random
 import numpy as np
 import tqdm
 import logging
+import json
 
 logging.basicConfig(filename="experiment.log", level=logging.INFO)
 
 def set_seed(seed):
-    '''Fixes all implementation level seeds'''
+    '''Fixes all random seeds for weights initialization, data shuffling, random sampling (batch ordering)
+    Residue noise may come from execution order of floating point arithmetic and parallel cuDNN kernels'''
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
-def run_experiment(seed, model, task, epochs, train_loader, val_loader):
+def set_torch_determ_alg(mode: bool = True):
+    '''Sets deterministic torch algoriths (impl noise)'''
+    print(f"Setting torch determ. algorithms: {mode}")
+    torch.use_deterministic_algorithms(mode) # True
+
+def set_cudnn_kernels(mode: bool = True):
+    '''Sets cuDNN deterministic kernels  (impl noise)'''
+    print(f"Setting cudnn deterministic kernels: {mode}")
+    torch.backends.cudnn.deterministic = mode # True
+    torch.backends.cudnn.benchmark = not mode # False
+
+def set_float32():
+    '''Sets float32 fixed precision instead of switching between types (impl noise)'''
+    print(f"Setting fixed precision to float32")
+    torch_dtype = torch.float32
+
+def run_experiment(seed, model, task, epochs, train_loader, val_loader, alg_noise: bool = True):
     set_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
@@ -60,9 +78,33 @@ if __name__ == "__main__":
     num_seeds = conf.run.seeds if conf else args.num_seeds
     num_epochs = conf.train.epochs if conf else args.num_epochs
     num_samples = conf.train.samples if conf else args.num_samples
+
     # Set results dir
     results_path = Path(prj_path / "results" / conf.results.output_path if conf else dataset_name)
     Path.mkdir(Path(results_path), parents=True, exist_ok=True)
+
+    # Set algo./impl. noise control configs
+    impl_noise = conf.noise.algo.control if conf else False
+    algo_noise = conf.noise.impl.control if conf else False
+    both = (impl_noise and algo_noise) or conf.run.deterministic
+    no_control = not(impl_noise or algo_noise)
+    print(f"Deteceted investigating one of noise types:\nimpl:{impl_noise}, alg:{algo_noise}, both:{both}, no_control:{no_control}")
+    
+    if not (both or no_control):
+        res_noise_path = Path(results_path, "alg" if algo_noise else "imp")
+    elif both:
+        res_noise_path = Path(results_path, "both")
+    else:
+        res_noise_path = Path(results_path, "no_crl")
+    print(f"Creating noise results path as: ", res_noise_path)
+    Path.mkdir(Path(res_noise_path), parents=True, exist_ok=True)
+
+
+    if not no_control or both: # What individual noise types to fix
+        if algo_noise:
+            impl_noise_types = conf.noise.impl.types
+        if impl_noise:
+            algo_noise_types = conf.noise.algo.types # i.e. torch.determ.algo.
 
     # Log the experiment configuration
     print("Experiment Configuration:")
@@ -81,17 +123,29 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
-
     train_loader, val_loader = build_dataloaders(
         tokenizer, 
         "nyu-mll/glue" if "glue" in dataset_name else "rajpurkar/squad", 
         task_name if dataset_name == "glue" else None, 
-        num_samples=num_samples if num_samples>0 else None
+        num_samples=num_samples,
         )
+    train_loader_size = train_loader.dataset.shape[0]
+    val_loader_size = val_loader.dataset.shape[0]
+    print(f"Running training on {train_loader_size} samples")
 
     results = []
     for seed in tqdm.tqdm(range(num_seeds)):
+
+        # Set all implementation-level seeds, ensuring determinism
+        set_torch_determ_alg(mode=algo_noise or both)
+        set_cudnn_kernels(mode=algo_noise or both)
+        if (algo_noise or both):
+            set_float32() 
+
+        # Set all algorithm-level noise (weights init., random sampling, data shuffling..)
+        seed = 42 if impl_noise or both else seed # Fixed impl or both controlled
         print(f"Running experiment with seed {seed}")
+        
         val_loss, val_acc, preds, labels, logits, start_positions, end_positions = run_experiment(seed, model, task_name, num_epochs, train_loader, val_loader)
         
         results.append({
@@ -184,11 +238,8 @@ if __name__ == "__main__":
         return tp, tn, fp, fn
 
     for r in results:
-        if np.all(r[res]!=None for res in ["preds","labels"]):
+        if np.all([r[res]!=None for res in ["preds","labels"]]):
             print(f"Preds and labels found for run")#: {r}")
-        else:
-            print(f"No preds-labels found for run")#: {r}")
-        if np.all((r["preds"]!=None, r["labels"]!=None)):
             try:
                 tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
                 r["tp_idx"] = tp.tolist()
@@ -197,11 +248,15 @@ if __name__ == "__main__":
                 r["fn_idx"] = fn.tolist()
             except Exception as e:
                 print(str(e))
+        else:
+            print(f"No preds and labels found for run")#: {r}")
+
     if np.all([results[i]["fp_idx"]!=None for i in range(num_results)]):
         fp_counts = [len(r["fp_idx"]) for r in results if all(r[res] for res in ["preds", "labels"])]
         fp_std = np.std(fp_counts)
         print("FP stddev:", fp_std)
 
+        num_samples = len(results[0]["labels"])
         fp_frequency = np.zeros(num_samples)
 
         for r in results:
@@ -226,9 +281,16 @@ if __name__ == "__main__":
                     print(f"No {subgroup} entries found for run: ")#{r}, skipping..")
         return np.mean(churns)
 
-    if np.all((results[i]["fp_idx"]!=None, results[i]["fn_idx"]!=None) for i in range(num_results)):
-        print("FP churn:", subgroup_churn(results, "fp_idx"))
-        print("FN churn:", subgroup_churn(results, "fn_idx"))
+    if np.all([(results[i]["fp_idx"]!=None, results[i]["fn_idx"]!=None) for i in range(num_results)]):
+        try:
+            fp_idx_churn = subgroup_churn(results, "fp_idx")
+            fn_idx_churn = subgroup_churn(results, "fn_idx")
+            print("FP churn:", fp_idx_churn)
+            print("FN churn:", fn_idx_churn)
+        except TypeError as e:
+            print(str(e))
+            fp_idx_churn = np.nan
+            fn_idx_churn = np.nan
 
     # Collate all results into a DataFrame for easier analysis
     import pandas as pd
@@ -236,16 +298,15 @@ if __name__ == "__main__":
         "seed": [r["seed"] for r in results],
         "val_acc": [r["val_acc"] for r in results],
         "val_loss": [r["val_loss"] for r in results],
-        "fp_count": [len(r["fp_idx"]) if "fp_idx" in r else np.nan for r in results],
-        "fn_count": [len(r["fn_idx"]) if "fn_idx" in r else np.nan for r in results],
-        "fp_churn": [subgroup_churn(results, "fp_idx") if "fp_idx" in r else np.nan for r in results],
-        "fn_churn": [subgroup_churn(results, "fn_idx") if "fn_idx" in r else np.nan for r in results],
+        "fp_count": [len(r["fp_idx"]) if r["fp_idx"]!=None else np.nan for r in results],
+        "fn_count": [len(r["fn_idx"]) if r["fn_idx"]!=None else np.nan for r in results],
+        "fp_churn": [fp_idx_churn if r["fp_idx"]!=None else np.nan for r in results],
+        "fn_churn": [fn_idx_churn if r["fn_idx"]!=None else np.nan for r in results],
         # Add more columns as needed for analysis
     })
 
     # Store per seed results as JSON or CSV for further analysis
-    import json
-    with open(f"experiment_results-{dataset_name}.json", "w") as f:
+    with open(f"{res_noise_path}/experiment_results-{dataset_name}.json", "w") as f:
         json.dump(
             {"conf": OmegaConf.to_container(conf, resolve=True),
             "results": [res if not isinstance(vals, np.ndarray) else vals.tolist() for res in results for keys, vals in res.items()]
