@@ -242,12 +242,16 @@ if __name__ == "__main__":
             print(f"Preds and labels found for run")#: {r}")
             try:
                 tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
-                r["tp_idx"] = tp.tolist()
+                r["tp_idx"] = tp.tolist() 
                 r["tn_idx"] = tn.tolist()
                 r["fp_idx"] = fp.tolist()
                 r["fn_idx"] = fn.tolist()
             except Exception as e:
                 print(str(e))
+                r["tp_idx"] = None
+                r["tn_idx"] = None
+                r["fp_idx"] = None
+                r["fn_idx"] = None
         else:
             print(f"No preds and labels found for run")#: {r}")
 
