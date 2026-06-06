@@ -15,7 +15,7 @@ train:
   samples: -1
 
 run:
-  seeds: 2
+  seeds: 10
   deterministic: False
 
 noise:
