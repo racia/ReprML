@@ -2,7 +2,7 @@
 #SBATCH --job-name=reprML
 #SBATCH --output=reprML-squad-imp.out
 #SBATCH --error=reprML-squad-imp.err
-# SBATCH --time=08:29:00 # Approx. 3 1/2 hrs
+#SBATCH --time=08:29:00 # Approx. 3 1/2 hrs
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -18,8 +18,9 @@ fi
 ENV="repr"
 
 # Activate the conda environment
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate $ENV
+# source "$(conda info --base)/etc/profile.d/conda.sh"
+# conda activate $ENV
+source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
 
 # Monitor GPU usage in background
 (
