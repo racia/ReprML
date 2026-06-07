@@ -248,12 +248,12 @@ if __name__ == "__main__":
                 r["fn_idx"] = fn.tolist()
             except Exception as e:
                 print(str(e))
-                r["tp_idx"] = None
-                r["tn_idx"] = None
-                r["fp_idx"] = None
-                r["fn_idx"] = None
         else:
             print(f"No preds and labels found for run")#: {r}")
+            r["tp_idx"] = None
+            r["tn_idx"] = None
+            r["fp_idx"] = None
+            r["fn_idx"] = None
 
     if np.all([results[i]["fp_idx"]!=None for i in range(num_results)]):
         fp_counts = [len(r["fp_idx"]) for r in results if all(r[res] for res in ["preds", "labels"])]
