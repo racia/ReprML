@@ -2,7 +2,7 @@
 #SBATCH --job-name=reprML
 #SBATCH --output=reprML-squad-imp.out
 #SBATCH --error=reprML-squad-imp.err
-# SBATCH --time=08:29:00 # Approx. 3 1/2 hrs
+#SBATCH --time=10:00:00 # Approx. 3 1/2 hrs
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=reprML
-#SBATCH --output=reprML-squad.out
-#SBATCH --error=reprML-squad.err
-# SBATCH --time=10:29:00 # Approx. 8 hrs?
+#SBATCH --output=reprML-squad-determ.out
+#SBATCH --error=reprML-squad-determ.err
+#SBATCH --time=10:29:00 # Approx. 8 hrs?
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -12,15 +12,28 @@
 
 # Save input variables
 
-if [! -z $1]; then
+if (! -z $1); then
     DETERM="-$1"
 fi
 ENV="repr"
 
 # Activate the conda environment
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate $ENV
-# source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
+# source "$(conda info --base)/etc/profile.d/conda.sh"
+# conda activate $ENV
+source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
+
+if (! -z $DETERM); then
+    # Enable deterministic Cuda BLAS operations
+    echo "Enabling deterministic CuBLAS"
+    export CUBLAS_WORKSPACE_CONFIG=:4096:8
+    # export CUBLAS_WORKSPACE_CONFIG=:16:8
+fi
+
+python - <<'EOF'
+import os
+print(os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
+EOF
+
 # Monitor GPU usage in background
 (
     while true; do
