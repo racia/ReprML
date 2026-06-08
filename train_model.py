@@ -185,6 +185,6 @@ def train(task, model, num_epochs, train_loader, val_loader, device):
         elif task == "plain_text":
             # print(f"Keys in val_loader batch: {next(iter(val_loader)).keys()}")  # Debugging line to check batch keys")
             val_loss, start_positions, end_positions = evaluate_squad(model, val_loader, device)
-        print(f"Epoch {epoch+1}:", f"train_acc={train_acc:.4f}" if train_acc is not None else "train_acc=0.0000", f"val_loss={val_loss:.4f}" if val_loss is not None else "val_loss=0.0000")
+        print(f"Epoch {epoch+1}:", f"train_acc={train_acc:.4f}" if train_acc is not None else "train_acc=0.0000", f"val_loss={val_loss:.4f}" if val_loss is not None else "val_acc={val_acc:.4f}")
     # Return final evaluation results after training
     return val_loss, val_acc, preds, labels, logits, start_positions, end_positions
