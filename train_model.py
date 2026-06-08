@@ -21,9 +21,9 @@ def build_dataloaders(tokenizer, dataset_name, task_name=None, preprocess_fn=Non
         
     dataset = load_dataset(path=dataset_name, name=task_name)  
     if num_samples != None and num_samples > 0:
-        sampler = RandomSampler(dataset, replacement=True, num_samples=num_samples)
+        sampler = RandomSampler(dataset["train"], replacement=True, num_samples=num_samples)
     else:
-        sampler = RandomSampler(dataset, replacement=False, num_samples=dataset["train"].num_rows)
+        sampler = RandomSampler(dataset["train"], replacement=False, num_samples=dataset["train"].num_rows)
     print(sampler, "with sampler size:", len(sampler))
     
     if "squad" in dataset_name:
@@ -151,13 +151,12 @@ def evaluate_squad(model, val_loader, device):
         for batch in val_loader:
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
-            preds = outputs.start_logits.argmax(dim=1), outputs.end_logits.argmax(dim=1)
-            # print("Preds:", preds)
-            start, end = batch["start_positions"], batch["end_positions"]
+            preds_start = outputs.start_logits.argmax(dim=1)
+            preds_end = outputs.end_logits.argmax(dim=1)
             # pred_text = extract_text(batch, start.cpu().numpy(), end.cpu().numpy()) TODO: Fix by not omitting context
             # pred_texts.extend(pred_text)
-            start_positions.extend(start.cpu().numpy())
-            end_positions.extend(end.cpu().numpy())
+            start_positions.extend(preds_start.cpu().numpy())
+            end_positions.extend(preds_end.cpu().numpy())
             total_loss += outputs.loss.item()
     return total_loss / len(val_loader), start_positions, end_positions
 
