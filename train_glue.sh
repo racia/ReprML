@@ -16,9 +16,9 @@ DETERM="-$1"
 ENV="repr"
 
 # Activate the conda environment
-# source "$(conda info --base)/etc/profile.d/conda.sh"
-# conda activate $ENV
-source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate $ENV
+# source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
 
 # Monitor GPU usage in background
 (
