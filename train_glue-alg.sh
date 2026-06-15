@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=reprML
-#SBATCH --output=reprML-glue-alg.out
-#SBATCH --error=reprML-glue-alg.err
-# SBATCH --time=03:29:00 # Approx. 3 1/2 hrs
+#SBATCH --output=reprML-glue-alg-%j.out
+#SBATCH --error=reprML-glue-alg-%j.err
+#SBATCH --time=03:29:00 # Approx. 3 1/2 hrs
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
