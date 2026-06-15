@@ -2,7 +2,7 @@
 #SBATCH --job-name=reprML
 #SBATCH --output=reprML-squad-alg.out
 #SBATCH --error=reprML-squad-alg.err
-#SBATCH --time=09:00:00 # Approx. 8 1/2 hrs
+# SBATCH --time=09:00:00 # Approx. 8 1/2 hrs
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
 #SBATCH --cpus-per-task=4
@@ -31,8 +31,17 @@ conda activate $ENV
 ) > gpu_monitor.log &
 MONITOR_PID=$!#
 
-# Set tooling determinism
-export CUBLAS_WORKSPACE_CONFIG=:4096:8 # Reproducible matrix operations
+if (! -z $NOISE); then
+    # Enable deterministic Cuda BLAS operations
+    echo "Enabling deterministic CuBLAS"
+    export CUBLAS_WORKSPACE_CONFIG=:4096:8
+    # export CUBLAS_WORKSPACE_CONFIG=:16:8
+fi
+
+python - <<'EOF'
+import os
+print(os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
+EOF
 
 # Define script and config variables
 declare -a CONFIGS=("$PWD/config/train-squad"${NOISE}".yaml")
