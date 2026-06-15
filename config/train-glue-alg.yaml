@@ -16,6 +16,7 @@ train:
   
 run:
   seeds: 10
+  seed: None
   deterministic: False
   
 noise:

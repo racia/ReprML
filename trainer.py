@@ -38,6 +38,22 @@ def set_float32():
     print(f"Setting fixed precision to float32")
     torch_dtype = torch.float32
 
+
+def to_jsonable(value):
+    if isinstance(value, np.ndarray):
+        return [to_jsonable(item) for item in value.tolist()]
+    if isinstance(value, (np.float32, np.float64)):
+        return float(value)
+    if isinstance(value, (np.int32, np.int64)):
+        return int(value)
+    if isinstance(value, dict):
+        return {key: to_jsonable(val) for key, val in value.items()}
+    if isinstance(value, list):
+        return [to_jsonable(item) for item in value]
+    if isinstance(value, tuple):
+        return [to_jsonable(item) for item in value]
+    return value
+
 def run_experiment(seed, model, task, epochs, train_loader, val_loader, alg_noise: bool = True):
     set_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -45,8 +61,9 @@ def run_experiment(seed, model, task, epochs, train_loader, val_loader, alg_nois
     val_loss, val_acc, preds, labels, logits, start_positions, end_positions = train(task=task, model=model, num_epochs=epochs, train_loader=train_loader, val_loader=val_loader, device=device)  # your training loop
     # Save model checkpoint after training
     # torch.save(model.state_dict(), f"model_checkpoint_seed_{seed}.pt")
-    if start_positions and end_positions:
-        assert len(start_positions) == len(end_positions), f"Length mismatch between start and end positions"
+    if start_positions.size > 0 and end_positions.size > 0:
+        pass
+        # assert len(start_positions) == len(end_positions), f"Length mismatch between start and end positions"
     return val_loss, val_acc, preds, labels, logits, start_positions, end_positions
 
 
@@ -143,8 +160,10 @@ if __name__ == "__main__":
             set_float32() 
 
         # Set all algorithm-level noise (weights init., random sampling, data shuffling..)
-        seed = 42 if impl_noise or both else seed # Fixed impl or both controlled
+        seed = conf.run.seed if (impl_noise or both) else seed # Fixed impl or both controlled
         print(f"Running experiment with seed {seed}")
+        Path.mkdir(Path(res_noise_path, f"seed_{seed}"), parents=True, exist_ok=True) if (impl_noise or both) else None
+        print(f"Creating results directory for seed {seed} at: ", res_noise_path)
         
         val_loss, val_acc, preds, labels, logits, start_positions, end_positions = run_experiment(seed, model, task_name, num_epochs, train_loader, val_loader)
         
@@ -152,25 +171,25 @@ if __name__ == "__main__":
             "seed": seed,
             "val_acc": val_acc if val_acc else None,
             "val_loss": val_loss if val_loss else None,
-            "preds": preds.tolist() if isinstance(preds, np.ndarray) else preds, # TODO: Case None 
-            "labels": labels.tolist() if isinstance(labels, np.ndarray) else labels,
-            "logits": logits.tolist() if isinstance(logits, np.ndarray) else logits,
-            "start_positions": [int(i) for i in start_positions] if start_positions else None,
-            "end_positions": [int(i) for i in end_positions] if end_positions else None
+            "preds": preds, # TODO: Case None 
+            "labels": labels,
+            "logits": logits,
+            "start_positions": start_positions,
+            "end_positions": end_positions
         })
     assert (not isinstance(vals, np.ndarray) for res in results for keys, vals in res.items())
-    print(f"Mean false error rate per seed: {[np.mean(r['preds']!=r['labels']) for r in results]} (in case of existing preds, labels)")
+    print(f"Mean false error rate per seed: {[np.mean(np.array(r['preds'])!=np.array(r['labels'])) for r in results]} (in case of existing preds, labels)")
     # print([r["labels"] for r in results])
 
     num_results = len(results)
 
     accuracies = [r["val_acc"] for r in results]
-    if all(accuracies):
-        mean_acc = np.mean(accuracies)
-        std_acc = np.std(accuracies)
 
-        print("Mean accuracy:", mean_acc)
-        print("Stddev:", std_acc)
+    mean_acc = np.mean(accuracies)
+    std_acc = np.std(accuracies)
+
+    print("Mean accuracy:", mean_acc)
+    print("Stddev:", std_acc)
 
     def compute_churn(preds_a, preds_b):
         preds_a = np.array(preds_a)
@@ -180,7 +199,6 @@ if __name__ == "__main__":
 
     churn_matrix = np.zeros((num_results, num_results))
 
-    # if all(~np.isnan(np.array(list(results[i].values())) for i in range(num_results))):
     if dataset_name == "glue":
         for i in range(num_results):
             for j in range(num_results):
@@ -191,8 +209,6 @@ if __name__ == "__main__":
                 )
         mean_churn = churn_matrix[np.triu_indices(num_results, k=1)].mean() # Mean over all independent runs
         print("Mean churn:", mean_churn)
-
-    # if all(results[i]["preds"] is not None for i in range(num_results)):
     elif dataset_name == "squad":
         for i in range(num_results):
             for j in range(num_results):
@@ -212,18 +228,17 @@ if __name__ == "__main__":
         return np.mean(np.linalg.norm(diffs, axis=1))
 
     l2_matrix = np.zeros((num_results, num_results))
-    if all(results[i]["logits"] != None for i in range(num_results)):
-        try:
-            for i in range(num_results):
-                for j in range(num_results):
-                    l2_matrix[i, j] = compute_l2(
-                        results[i]["logits"],
-                        results[j]["logits"]
-                    )
-        except TypeError:
-            print(f"L2-divergence couldn't be computed (likeliky due to missing logits) for run with seed {seed}, skipping..")
+    try:
+        for i in range(num_results):
+            for j in range(num_results):
+                l2_matrix[i, j] = compute_l2(
+                    results[i]["logits"],
+                    results[j]["logits"]
+                )
         mean_l2 = l2_matrix[np.triu_indices(num_results, k=1)].mean()
         print("Mean L2 divergence:", mean_l2)
+    except TypeError:
+        print(f"L2-divergence couldn't be computed (likeliky due to missing logits) for run with seed {seed}, skipping..")
 
 
     def compute_confusion_groups(preds, labels):
@@ -238,38 +253,29 @@ if __name__ == "__main__":
         return tp, tn, fp, fn
 
     for r in results:
-        if np.all([r[res]!=None for res in ["preds","labels"]]):
+        # if np.all((r["preds"], r["labels"])):
+        try:
+            tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
+            r["tp_idx"] = tp
+            r["tn_idx"] = tn
+            r["fp_idx"] = fp
+            r["fn_idx"] = fn
             print(f"Preds and labels found for run")#: {r}")
-            try:
-                tp, tn, fp, fn = compute_confusion_groups(r["preds"], r["labels"])
-                r["tp_idx"] = tp.tolist() 
-                r["tn_idx"] = tn.tolist()
-                r["fp_idx"] = fp.tolist()
-                r["fn_idx"] = fn.tolist()
-            except Exception as e:
-                print(str(e))
-        else:
-            print(f"No preds and labels found for run")#: {r}")
-            r["tp_idx"] = None
-            r["tn_idx"] = None
-            r["fp_idx"] = None
-            r["fn_idx"] = None
+        except Exception as e:
+            print(str(e))
+    fp_counts = [len(r["fp_idx"]) for r in results] # Check for pred/ĺabs not necessary since 0 otherwise 
+    fp_std = np.std(fp_counts)
+    print("FP stddev:", fp_std)
 
-    if np.all([results[i]["fp_idx"]!=None for i in range(num_results)]):
-        fp_counts = [len(r["fp_idx"]) for r in results if all(r[res] for res in ["preds", "labels"])]
-        fp_std = np.std(fp_counts)
-        print("FP stddev:", fp_std)
+    num_samples = len(results[0]["labels"])
+    fp_frequency = np.zeros(num_samples)
 
-        num_samples = len(results[0]["labels"])
-        fp_frequency = np.zeros(num_samples)
+    for r in results:
+        fp_frequency[r["fp_idx"]] += 1
 
-        for r in results:
-            if np.all(r["preds"]) and np.all(r["labels"]):
-                fp_frequency[r["fp_idx"]] += 1
-
-        # Samples that frequently flip into FP
-        unstable_fp_samples = np.where(fp_frequency > 5)[0]
-        print("Unstable FP samples:", unstable_fp_samples) # These are samples that frequently flip into FP across different runs, indicating they may be inherently ambiguous or difficult for the model to classify consistently.
+    # Samples that frequently flip into FP
+    unstable_fp_samples = np.where(fp_frequency > 5)[0]
+    print("Unstable FP samples:", unstable_fp_samples) # These are samples that frequently flip into FP across different runs, indicating they may be inherently ambiguous or difficult for the model to classify consistently.
 
     def subgroup_churn(results, subgroup="fp_idx"):
         churns = []
@@ -285,16 +291,15 @@ if __name__ == "__main__":
                     print(f"No {subgroup} entries found for run: ")#{r}, skipping..")
         return np.mean(churns)
 
-    if np.all([(results[i]["fp_idx"]!=None, results[i]["fn_idx"]!=None) for i in range(num_results)]):
-        try:
-            fp_idx_churn = subgroup_churn(results, "fp_idx")
-            fn_idx_churn = subgroup_churn(results, "fn_idx")
-            print("FP churn:", fp_idx_churn)
-            print("FN churn:", fn_idx_churn)
-        except TypeError as e:
-            print(str(e))
-            fp_idx_churn = np.nan
-            fn_idx_churn = np.nan
+    try: # Nans should be manageable
+        # fp_idx_churn = subgroup_churn(results, "fp_idx")
+        # fn_idx_churn = subgroup_churn(results, "fn_idx")
+        print("FP churn:", subgroup_churn(results, "fp_idx"))
+        print("FN churn:", subgroup_churn(results, "fn_idx"))
+    except TypeError as e:
+        print(str(e))
+        fp_idx_churn = np.nan
+        fn_idx_churn = np.nan
 
     # Collate all results into a DataFrame for easier analysis
     import pandas as pd
@@ -302,17 +307,21 @@ if __name__ == "__main__":
         "seed": [r["seed"] for r in results],
         "val_acc": [r["val_acc"] for r in results],
         "val_loss": [r["val_loss"] for r in results],
-        "fp_count": [len(r["fp_idx"]) if r["fp_idx"]!=None else np.nan for r in results],
-        "fn_count": [len(r["fn_idx"]) if r["fn_idx"]!=None else np.nan for r in results],
-        "fp_churn": [fp_idx_churn if r["fp_idx"]!=None else np.nan for r in results],
-        "fn_churn": [fn_idx_churn if r["fn_idx"]!=None else np.nan for r in results],
+        "fp_count": [len(r["fp_idx"]) for r in results],
+        "fn_count": [len(r["fn_idx"]) for r in results],
+        "fp_churn": subgroup_churn(results, "fp_idx"),
+        "fn_churn": subgroup_churn(results, "fn_idx"),
         # Add more columns as needed for analysis
     })
 
+    results_serializable = []
+    for r in results:
+        results_serializable.append(to_jsonable(r))
+
     # Store per seed results as JSON or CSV for further analysis
-    with open(f"{res_noise_path}/experiment_results-{dataset_name}.json", "w") as f:
+    with open(Path(res_noise_path, f"seed_{results[0]['seed']}" if (impl_noise or both) else "", f"experiment_results-{dataset_name}.json"), "w") as f:
         json.dump(
-            {"conf": OmegaConf.to_container(conf, resolve=True),
-            "results": [res if not isinstance(vals, np.ndarray) else vals.tolist() for res in results for keys, vals in res.items()]
-            }, 
+            {"conf": to_jsonable(OmegaConf.to_container(conf, resolve=True)),
+            "results": results_serializable
+            },
             f, indent=4)

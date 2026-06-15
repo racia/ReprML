@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
@@ -120,6 +121,7 @@ def train_epoch(task, model, train_loader, device, optimizer, scheduler):
 def evaluate_glue(model, val_loader, device):    
     model.eval()
     total, correct = 0, 0
+    val_labels, val_preds, val_logits = [], [], []
 
     with torch.no_grad():
         for batch in val_loader:
@@ -134,9 +136,12 @@ def evaluate_glue(model, val_loader, device):
 
             preds = outputs.logits.argmax(dim=1)
             correct += (preds == labels).sum().item()
+            val_labels.extend(labels.cpu().numpy())
+            val_preds.extend(preds.cpu().numpy())
+            val_logits.extend(outputs.logits.cpu().numpy())
             total += labels.size(0)
 
-    return correct / total, preds.cpu().numpy(), labels.cpu().numpy(), outputs.logits.cpu().numpy()
+    return correct / total, val_preds, val_labels, val_logits
 
 # -----------------------------
 # 5. Evaluation Loop (SQuAD)
@@ -176,7 +181,7 @@ def train(task, model, num_epochs, train_loader, val_loader, device):
         num_warmup_steps=0 if "distilbert" in model.__class__.__name__.lower() else int(0.1 * num_training_steps),
         num_training_steps=num_training_steps
     )
-    val_acc, val_loss, preds, labels, logits, start_positions, end_positions = None, None, None, None, None, None, None
+    val_acc, val_loss, preds, labels, logits, start_positions, end_positions = None, None, np.ndarray(0), np.ndarray(0), np.ndarray(0), np.ndarray(0), np.ndarray(0)
     for epoch in range(num_epochs):
         train_acc = train_epoch(task, model, train_loader, device, optimizer, scheduler)
         if task == "sst2":
