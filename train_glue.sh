@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=reprML
-#SBATCH --output=reprML-glue-%j.out
-#SBATCH --error=reprML-glue-%j.err
+#SBATCH --output=reprML-glue-determ-%j.out
+#SBATCH --error=reprML-glue-determ-%j.err
 #SBATCH --time=03:29:00 # Approx. 3 1/2 hrs
 # SBATCH --partition=gpu
 #SBATCH --gres=gpu:2
@@ -12,25 +12,13 @@
 
 # Save input variables
 
-DETERM=""
+DETERM="-$1"
 ENV="repr"
 
 # Activate the conda environment
-# source "$(conda info --base)/etc/profile.d/conda.sh"
-# conda activate $ENV
-source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
-
-# if (! -z $DETERM); then
-#     # Enable deterministic Cuda BLAS operations
-#     echo "Enabling deterministic CuBLAS"
-#     export CUBLAS_WORKSPACE_CONFIG=:4096:8
-#     # export CUBLAS_WORKSPACE_CONFIG=:16:8
-# fi
-
-# python - <<'EOF'
-# import os
-# print(os.environ.get("CUBLAS_WORKSPACE_CONFIG"))
-# EOF
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate $ENV
+# source /home/hd/hd_hd/hd_ea226/research-project/.env/bin/activate
 
 # Monitor GPU usage in background
 (

@@ -1,5 +1,0 @@
-/var/spool/slurmd/job4952175/slurm_script: line 15: -z: command not found
-/var/spool/slurmd/job4952175/slurm_script: line 25: -z: command not found
-Some weights of RobertaForQuestionAnswering were not initialized from the model checkpoint at roberta-base and are newly initialized: ['qa_outputs.bias', 'qa_outputs.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [52:37<7:53:36, 3157.41s/it] 20%|██        | 2/10 [1:45:17<7:01:11, 3158.88s/it] 30%|███       | 3/10 [2:38:00<6:08:44, 3160.63s/it] 40%|████      | 4/10 [3:30:43<5:16:10, 3161.82s/it] 50%|█████     | 5/10 [4:23:32<4:23:41, 3164.34s/it] 60%|██████    | 6/10 [5:16:20<3:31:02, 3165.71s/it] 70%|███████   | 7/10 [6:09:07<2:38:18, 3166.03s/it] 80%|████████  | 8/10 [7:01:53<1:45:31, 3165.92s/it] 90%|█████████ | 9/10 [7:54:36<52:45, 3165.23s/it]  100%|██████████| 10/10 [8:47:25<00:00, 3166.22s/it]100%|██████████| 10/10 [8:47:25<00:00, 3164.54s/it]
