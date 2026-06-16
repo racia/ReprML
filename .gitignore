@@ -3,8 +3,7 @@
 *.pyo
 
 # Ignore results files
-results_*.json
-results/
+/results/*/*_results*.json
 
 # Ignore logs
 logs/
@@ -13,8 +12,6 @@ logs/
 checkpoints/
 
 # Output and error files
-*.out
-*.err
 outputs/
 
 # Log files

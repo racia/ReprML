@@ -1,0 +1,95 @@
+Running  with the following configurations: /home/hd/hd_hd/hd_ea226/reprML/config/train-glue-imp.yaml
+Deteceted investigating one of noise types:
+impl:True, alg:False, both:False, no_control:False
+Creating noise results path as:  /pfs/data6/home/hd/hd_hd/hd_ea226/reprML/results/glue/imp
+Experiment Configuration:
+Model Name: distilbert-base-uncased
+Dataset Name: glue
+Task Name: sst2
+Number of Seeds: 10
+Number of Epochs: 3
+Number of Samples: -1
+Loading model and dataset...
+<torch.utils.data.sampler.RandomSampler object at 0x1547bc03d130> with sampler size: 67349
+train batches: 2105
+val batches: 28
+Running training on 67349 samples
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9147 val_acc=0.9083
+Epoch 2: train_acc=0.9611 val_acc=0.9048
+Epoch 3: train_acc=0.9756 val_acc=0.9048
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9814 val_acc=0.8979
+Epoch 2: train_acc=0.9888 val_acc=0.8991
+Epoch 3: train_acc=0.9915 val_acc=0.9025
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9956 val_acc=0.8968
+Epoch 2: train_acc=0.9959 val_acc=0.9025
+Epoch 3: train_acc=0.9958 val_acc=0.8991
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9977 val_acc=0.9048
+Epoch 2: train_acc=0.9979 val_acc=0.9060
+Epoch 3: train_acc=0.9963 val_acc=0.9083
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9982 val_acc=0.9083
+Epoch 2: train_acc=0.9983 val_acc=0.8979
+Epoch 3: train_acc=0.9977 val_acc=0.8979
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9990 val_acc=0.9025
+Epoch 2: train_acc=0.9990 val_acc=0.8888
+Epoch 3: train_acc=0.9983 val_acc=0.8922
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9994 val_acc=0.8899
+Epoch 2: train_acc=0.9991 val_acc=0.9002
+Epoch 3: train_acc=0.9987 val_acc=0.8968
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9992 val_acc=0.9025
+Epoch 2: train_acc=0.9991 val_acc=0.8945
+Epoch 3: train_acc=0.9987 val_acc=0.8979
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9993 val_acc=0.8922
+Epoch 2: train_acc=0.9993 val_acc=0.9002
+Epoch 3: train_acc=0.9988 val_acc=0.8945
+Setting torch determ. algorithms: False
+Setting cudnn deterministic kernels: False
+Running experiment with seed 14
+Epoch 1: train_acc=0.9994 val_acc=0.8945
+Epoch 2: train_acc=0.9993 val_acc=0.8784
+Epoch 3: train_acc=0.9990 val_acc=0.8911
+Mean false error rate per seed: [np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0), np.float64(1.0)] (in case of existing preds, labels)
+Mean accuracy: 0.8985091743119267
+Stddev: 0.005160550458715594
+Comparing run 0 and run 0 for normal churn...
+
+============================= JOB FEEDBACK =============================
+
+NodeName=uc2n911
+Job ID: 4996672
+Cluster: uc3
+User/Group: hd_ea226/hd_hd
+State: FAILED (exit code 1)
+Nodes: 1
+Cores per node: 4
+CPU Utilized: 01:19:46
+CPU Efficiency: 23.95% of 05:33:00 core-walltime
+Job Wall-clock time: 01:23:15
+Memory Utilized: 1021.88 MB
+Memory Efficiency: 6.24% of 16.00 GB (16.00 GB/node)

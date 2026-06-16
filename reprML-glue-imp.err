@@ -1,0 +1,16 @@
+/var/spool/slurmd/job4996672/slurm_script: line 14: -z: command not found
+Some weights of DistilBertForSequenceClassification were not initialized from the model checkpoint at distilbert-base-uncased and are newly initialized: ['classifier.bias', 'classifier.weight', 'pre_classifier.bias', 'pre_classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+  0%|          | 0/10 [00:00<?, ?it/s] 10%|█         | 1/10 [07:57<1:11:39, 477.69s/it] 20%|██        | 2/10 [16:17<1:05:25, 490.68s/it] 30%|███       | 3/10 [24:36<57:40, 494.40s/it]   40%|████      | 4/10 [32:55<49:38, 496.46s/it] 50%|█████     | 5/10 [40:56<40:53, 490.65s/it] 60%|██████    | 6/10 [49:16<32:55, 493.80s/it] 70%|███████   | 7/10 [57:36<24:47, 495.90s/it][2026-06-11T23:28:15.485] error: IPMI failure detected, energy reading for this step will not be accurate.
+ 80%|████████  | 8/10 [1:05:56<16:34, 497.40s/it] 90%|█████████ | 9/10 [1:14:17<08:18, 498.49s/it]100%|██████████| 10/10 [1:22:38<00:00, 499.09s/it]100%|██████████| 10/10 [1:22:38<00:00, 495.83s/it]
+Traceback (most recent call last):
+  File "/pfs/data6/home/hd/hd_hd/hd_ea226/reprML/trainer.py", line 188, in <module>
+    churn_matrix[i, j] = compute_churn( # Pairwise churn between all runs
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/pfs/data6/home/hd/hd_hd/hd_ea226/reprML/trainer.py", line 176, in compute_churn
+    preds_a = np.array(preds_a)
+              ^^^^^^^^^^^^^^^^^
+  File "/home/hd/hd_hd/hd_ea226/miniconda3/lib/python3.12/site-packages/torch/_tensor.py", line 1149, in __array__
+    return self.numpy()
+           ^^^^^^^^^^^^
+TypeError: can't convert cuda:0 device type tensor to numpy. Use Tensor.cpu() to copy the tensor to host memory first.
