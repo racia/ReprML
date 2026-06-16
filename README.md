@@ -1,17 +1,28 @@
-## Top-line metrics (Val acc (stddev))
+
+## Results Table
+Please convert this table into a Markdown table. There are 4 settings, where the seeds are for IMP (implementation-noise) and DET (deterministic). Alg is for algorithmic type noise and NO stands for no control, i.e. both types of noise allowed.
+
+| Task | Setting | Seed | Val Acc | Stddev | Mean False Error | FP std | Mean Churn | FP Churn | FN Churn | L2 norm |
+|------|---------|-------|---------|--------|-------------------|--------|------------|----------|----------|---------|
+| GLUE ||||||||||
+| | ALG     | —     | 90,11   | 0,0060 | 0,0989            | 3,61   | 0,042      | _0,32_     | 0,39     | **1,56**    |
+|| IMP     | 4     | **90,83**   | _0,0038_ | 0,0917            | 4,52   | _0,039_      | 0,33     | 0,37     | 1,46    |
+|| IMP     | 14    | 90,08   | **0,0068** | 0,0992            | **5,25**   | 0,041      | 0,33     | _0,35_     | _1,32_    |
+|| IMP     | 24    | _89,56_   | _0,0028_ | **0,1044**            | 3,52   | 0,045      | **0,34**     | 0,37     | 1,55    |
+|| NO     | —    | 90,13   | 0,0054 | 0,0987            | 3,84   | 0,042      | 0,332    | 0,372    | 1,53    |
+|| DET      | 24     | 89,72   | 0,0042 | 0,1028            | _3,00_   | **0,048**      | **0,34**     | **0,43**     | 1,52    |
+
+### Top-line metrics (Validation accuracy -stddev)
 
 <img width="551" height="331" alt="Validation accuracies (settings)" src="https://github.com/user-attachments/assets/559c6e06-0f71-4016-8a0f-d82fd1bfbd0c" />
+Second comes again the algorithmic noise fixed setting (seed 14) with -0,75 acc. percentage points. The varying seeds setting over 10 runs (ALG) closely follows (-0,03 p.p.), and the runs with fixed seed 24 come last (89,56%).
 
-The algorithmic noise controlled with fixed seeds setting, IMP - seed 4, scores highest validation accuracy with 0,001 below average stddev (0,0038). The relative high FP stddev (4,52) suggests that fixed seed runs don't yield same (false) predictions across runs. This may be surprising since identical model initializations with same seeds should result in constant predictions on same data distributions. THis is further supported by the implementation-level noise controlled (ALG) setting with 0,006 accuracy stddev scoring relative low FP stdv, showing that even with varied seeds initializations, the predictions divergences stay low. As such, this highlights that prediction stability is not guaranteed with fixed random seed initialization alone. The deterministic setting (0,0042 val. acc stdv) with lowest FP stddev (3,0) seems to confirm this observation, requiring both noise types controlled for more stable cross-run predictions.
 
-## Sub-group metrics (Mean False Error, Churn, L2-Norm)
+The algorithmic noise controlled with fixed seeds setting, IMP - seed 4, scores highest validation accuracy with 0,001 below average stddev (0,0038). The relative high FP stddev (4,52) suggests that fixed seed runs don't yield same (false) predictions across runs. This may be surprising since identical model initializations with same seeds should result in constant predictions on same data distributions. This is further supported by the implementation-level noise controlled (ALG) setting with 0,006 accuracy stddev scoring relative low FP stdv, showing that even with varied seeds initializations, the predictions divergences stay low. As such, this highlights that prediction stability is not guaranteed with fixed random seed initialization alone. The deterministic setting (0,0042 val. acc stdv) with lowest FP stddev (3,0) seems to confirm this observation, requiring both noise types controlled for more stable cross-run predictions.
+
+### Sub-group metrics (Mean False Error, Churn, L2-Norm)
 
 <img width="500" height="300" alt="False Positives standard deviation" src="https://github.com/user-attachments/assets/5af8de47-a410-4fb0-9dc9-f4a6b789d401" />
-
-
-### Validation Accuracy (Stddev)
-Findings: 1. Validation accuracy is highest (90,83%) for the implementation noise setting with fixed seed 4. Second comes again the algorithmic noise fixed setting (seed 14) with -0,75 acc. percentage points. The varying seeds setting over 10 runs (ALG) closely follows (-0,03 p.p.), and the runs with fixed seed 24 come last (89,56%).
-	- 
 
 ### False Error Rate and Stability
 The mean false error for IMP - seed 4 is lowest (0,0917), followed by fixed seed 14 of 0,0992 (+0,0075)   
