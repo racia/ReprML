@@ -1,6 +1,5 @@
 
 ## Results Table
-Please convert this table into a Markdown table. There are 4 settings, where the seeds are for IMP (implementation-noise) and DET (deterministic). Alg is for algorithmic type noise and NO stands for no control, i.e. both types of noise allowed.
 
 | Task | Setting | Seed | Val Acc | Stddev | Mean False Error | FP std | Mean Churn | FP Churn | FN Churn | L2 norm |
 |------|---------|-------|---------|--------|-------------------|--------|------------|----------|----------|---------|
@@ -22,7 +21,8 @@ The algorithmic noise controlled with fixed seeds setting, IMP - seed 4, scores 
 
 <img width="500" height="300" alt="False Positives standard deviation" src="https://github.com/user-attachments/assets/5af8de47-a410-4fb0-9dc9-f4a6b789d401" />
 
+
 ### Mean Churn and L2-Norm
 For the algorithmic noise setting, where implementation-level noise is controlled, l2-norm is highest (1,56), pointing at more nuanced prediction variability, even with stable validation accuracy of 90,11% (0,006 stddev). This is expected for the algorithmic noise from seed variances.
 
-Additionally, the deterministic setting with fixed seed (24), matrix multiplications and torch algortihms, records second highest Mean False Errors (0,103), comparable to IMP - seed24 (-0,0014). Highest mean churn is scored for this all deterministic setting (0,048), with sub-group FN-churn 0,43 (also shared highest FP-churn: 0.34) staying close to the according same seed IMP noise setting, though with a bigger difference in the FN Churn rate (+0,06 change). (However, the algorithmic noise comes in-between with FN churn 0,39, resembling the relative high FN-churn in the implementation noise type controlled runs.) This is remarkable, since this may point to a "saturating" effect of a "badly" chosen seed, where a poorly parametrized model, yields unstable cross-run predictions. As such, under deterministic conditions, specific model vulnerabilities may be exposed, here: as cross-run FN rates differences. As such, full determinism is not a guarantee for prediction determinism, but rather a signal for enforced potential model instabilities under bad conditions for specific data sub-groups. 
+Additionally, the deterministic setting with fixed seed (24), matrix multiplications and torch algortihms, records second highest Mean False Errors (0,103), comparable to IMP - seed24 (-0,0014). Highest mean churn is scored for this all deterministic setting (0,048), with highest sub-group FN-churn 0,43 (also shared highest FP-churn: 0.34) staying close to the according same seed IMP noise setting, though with a bigger difference in the FN Churn rate (+0,06 change). (However, the algorithmic noise comes in-between with FN churn 0,39, resembling the relative high FN-churn in the implementation noise type controlled runs.) This is remarkable, since this may point to a "saturating" effect of a "badly" chosen seed, where a poorly parametrized model, yields unstable cross-run predictions. As such, under deterministic conditions, specific model vulnerabilities may be exposed, here: as cross-run FN rates differences. As such, full determinism is not a guarantee for prediction determinism, but rather a signal for enforced potential model instabilities under bad conditions for specific data sub-groups. 
