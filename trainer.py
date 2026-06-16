@@ -23,18 +23,18 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 def set_torch_determ_alg(mode: bool = True):
-    '''Sets deterministic torch algoriths (impl noise)'''
+    '''Sets deterministic torch algoriths'''
     print(f"Setting torch determ. algorithms: {mode}")
     torch.use_deterministic_algorithms(mode) # True
 
 def set_cudnn_kernels(mode: bool = True):
-    '''Sets cuDNN deterministic kernels  (impl noise)'''
+    '''Sets cuDNN deterministic kernels'''
     print(f"Setting cudnn deterministic kernels: {mode}")
     torch.backends.cudnn.deterministic = mode # True
     torch.backends.cudnn.benchmark = not mode # False
 
 def set_float32():
-    '''Sets float32 fixed precision instead of switching between types (impl noise)'''
+    '''Sets float32 fixed precision instead of switching between types'''
     print(f"Setting fixed precision to float32")
     torch_dtype = torch.float32
 
@@ -195,7 +195,6 @@ if __name__ == "__main__":
         preds_a = np.array(preds_a)
         preds_b = np.array(preds_b)
         return np.mean(preds_a != preds_b)
-
 
     churn_matrix = np.zeros((num_results, num_results))
 
