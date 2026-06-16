@@ -15,17 +15,12 @@ Please convert this table into a Markdown table. There are 4 settings, where the
 ### Top-line metrics (Validation accuracy -stddev)
 
 <img width="551" height="331" alt="Validation accuracies (settings)" src="https://github.com/user-attachments/assets/559c6e06-0f71-4016-8a0f-d82fd1bfbd0c" />
-Second comes again the algorithmic noise fixed setting (seed 14) with -0,75 acc. percentage points. The varying seeds setting over 10 runs (ALG) closely follows (-0,03 p.p.), and the runs with fixed seed 24 come last (89,56%).
-
 
 The algorithmic noise controlled with fixed seeds setting, IMP - seed 4, scores highest validation accuracy with 0,001 below average stddev (0,0038). The relative high FP stddev (4,52) suggests that fixed seed runs don't yield same (false) predictions across runs. This may be surprising since identical model initializations with same seeds should result in constant predictions on same data distributions. This is further supported by the implementation-level noise controlled (ALG) setting with 0,006 accuracy stddev scoring relative low FP stdv, showing that even with varied seeds initializations, the predictions divergences stay low. As such, this highlights that prediction stability is not guaranteed with fixed random seed initialization alone. The deterministic setting (0,0042 val. acc stdv) with lowest FP stddev (3,0) seems to confirm this observation, requiring both noise types controlled for more stable cross-run predictions.
 
 ### Sub-group metrics (Mean False Error, Churn, L2-Norm)
 
 <img width="500" height="300" alt="False Positives standard deviation" src="https://github.com/user-attachments/assets/5af8de47-a410-4fb0-9dc9-f4a6b789d401" />
-
-### False Error Rate and Stability
-The mean false error for IMP - seed 4 is lowest (0,0917), followed by fixed seed 14 of 0,0992 (+0,0075)   
 
 ### Mean Churn and L2-Norm
 For the alg. noise settings the l2-norm is highest (1,56) , pointing at more nuanced prediction variability, even with stable validation accuracies across runs of 90,11% (0,006 stddev). This is expected for the algorithmic noise from seed variances.
